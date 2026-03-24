@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>登录测试</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>登录测试</h1>
+    <button onclick="testLogin()">测试登录</button>
+    <div id="result"></div>
+
+    <script>
+        function testLogin() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '测试中...';
+
+            axios.post('http://localhost:8080/api/auth/login', {
+                username: 'admin',
+                password: 'admin123'
+            })
+            .then(response => {
+                resultDiv.innerHTML = '登录成功！<br>' + JSON.stringify(response.data, null, 2);
+                console.log('登录成功:', response.data);
+            })
+            .catch(error => {
+                resultDiv.innerHTML = '登录失败！<br>' + JSON.stringify(error, null, 2);
+                console.error('登录失败:', error);
+            });
+        }
+    </script>
+</body>
+</html>
