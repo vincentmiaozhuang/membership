@@ -17,6 +17,8 @@ const RechargeRecordManagement = () => {
   const [searchProductId, setSearchProductId] = useState('')
   const [searchCustomerId, setSearchCustomerId] = useState('')
   const [searchSupplierId, setSearchSupplierId] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
   const [form] = Form.useForm()
 
   const fetchRecords = async () => {
@@ -269,7 +271,7 @@ const RechargeRecordManagement = () => {
       dataIndex: 'createdAt',
       key: 'createdAt',
       width: 150,
-      render: (date) => (date ? new Date(date).toLocaleString() : '-'),
+      render: (date) => (date ? date.replace('T', ' ') : '-'),
     },
     {
       title: '操作',
@@ -397,6 +399,18 @@ const RechargeRecordManagement = () => {
           rowKey="id"
           loading={loading}
           scroll={{ x: 'max-content' }}
+          pagination={{
+            current: currentPage,
+            pageSize: pageSize,
+            total: records.length,
+            onChange: (page, size) => {
+              setCurrentPage(page)
+              setPageSize(size)
+            },
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
+            defaultPageSize: 50
+          }}
         />
       </div>
       <Modal

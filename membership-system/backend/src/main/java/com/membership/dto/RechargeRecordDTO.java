@@ -23,6 +23,6 @@ public class RechargeRecordDTO {
     private BigDecimal productFacePrice;
     private String status;
     private String description;
-    private String rechargePerson;
+    private Long rechargePerson;
     private LocalDateTime createdAt;
 }

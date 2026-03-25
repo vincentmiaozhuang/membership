@@ -55,6 +55,8 @@ public class AuthController {
                     .body(new MessageResponse("此用户不存在"));
         }
         
+
+        
         try {
             // 进行密码验证
             Authentication authentication = authenticationManager.authenticate(

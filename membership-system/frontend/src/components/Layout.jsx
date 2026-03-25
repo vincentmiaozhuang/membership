@@ -15,6 +15,7 @@ import {
   TransactionOutlined,
   WalletOutlined,
   SettingOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -142,6 +143,26 @@ const CustomLayout = ({ children }) => {
           icon: <TransactionOutlined />,
           label: '充值记录管理',
           permission: 'recharge:read',
+        },
+      ],
+    },
+    {
+      key: 'stats',
+      icon: <BarChartOutlined />,
+      label: '数据统计',
+      permission: null,
+      children: [
+        {
+          key: '/stats',
+          icon: <BarChartOutlined />,
+          label: '统计数据',
+          permission: 'stats:read',
+        },
+        {
+          key: '/daily-stats',
+          icon: <BarChartOutlined />,
+          label: '每日充值汇总',
+          permission: 'daily-stats:read',
         },
       ],
     },

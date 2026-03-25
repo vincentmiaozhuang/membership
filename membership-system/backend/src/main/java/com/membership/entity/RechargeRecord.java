@@ -57,6 +57,6 @@ public class RechargeRecord extends BaseEntity {
     @Column(name = "description", length = 500)
     private String description;
     
-    @Column(name = "recharge_person", length = 50)
-    private String rechargePerson;
+    @Column(name = "recharge_person")
+    private Long rechargePerson;
 }

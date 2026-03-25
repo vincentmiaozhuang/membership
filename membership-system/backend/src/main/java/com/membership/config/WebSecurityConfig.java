@@ -89,6 +89,11 @@ public class WebSecurityConfig {
                 .antMatchers("/test/**").permitAll()
                 .antMatchers("/upload/**").permitAll()
                 .antMatchers("/uploads/**").permitAll()
+                .antMatchers("/stats/**").permitAll()
+                .antMatchers("/generate/**").permitAll()
+                .antMatchers("/products").permitAll()
+                .antMatchers("/customers").permitAll()
+                .antMatchers("/suppliers").permitAll()
                 .anyRequest().authenticated();
         
         http.authenticationProvider(authenticationProvider());
