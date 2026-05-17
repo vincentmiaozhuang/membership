@@ -2,6 +2,8 @@
 -- 生成日期：2026-05-17
 -- 基于当前实体类结构生成
 
+
+
 -- 创建数据库
 CREATE DATABASE IF NOT EXISTS membership_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
