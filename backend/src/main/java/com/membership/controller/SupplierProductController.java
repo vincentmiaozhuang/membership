@@ -28,10 +28,34 @@ public class SupplierProductController {
     @Autowired
     private SupplierRepository supplierRepository;
     
+    private String generateSupplierProductCode() {
+        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder code = new StringBuilder(16);
+        java.util.Random random = new java.util.Random();
+        for (int i = 0; i < 16; i++) {
+            code.append(characters.charAt(random.nextInt(characters.length())));
+        }
+        // 检查是否已存在，避免重复
+        while (supplierProductRepository.existsBySupplierProductCode(code.toString())) {
+            code.setLength(0);
+            for (int i = 0; i < 16; i++) {
+                code.append(characters.charAt(random.nextInt(characters.length())));
+            }
+        }
+        return code.toString();
+    }
+    
     @GetMapping
     @PreAuthorize("hasAuthority('supplier-product:read')")
     public ResponseEntity<?> getSupplierProducts() {
         List<SupplierProduct> supplierProducts = supplierProductRepository.findAll();
+        // 为缺失supplierProductCode的记录生成代码
+        for (SupplierProduct product : supplierProducts) {
+            if (product.getSupplierProductCode() == null || product.getSupplierProductCode().isEmpty()) {
+                product.setSupplierProductCode(generateSupplierProductCode());
+                supplierProductRepository.save(product);
+            }
+        }
         List<SupplierProductDTO> supplierProductDTOs = supplierProducts.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -50,6 +74,9 @@ public class SupplierProductController {
         supplierProduct.setStockAmount(supplierProductDTO.getStockAmount());
         supplierProduct.setSalesAmount(supplierProductDTO.getSalesAmount());
         supplierProduct.setEnabled(supplierProductDTO.getEnabled() != null ? supplierProductDTO.getEnabled() : true);
+        supplierProduct.setSupplierProductCode(supplierProductDTO.getSupplierProductCode());
+        supplierProduct.setFaceValue(supplierProductDTO.getFaceValue());
+        supplierProduct.setDailyStockLimit(supplierProductDTO.getDailyStockLimit());
         
         SupplierProduct savedSupplierProduct = supplierProductRepository.save(supplierProduct);
         return ResponseEntity.ok(convertToDTO(savedSupplierProduct));
@@ -71,6 +98,9 @@ public class SupplierProductController {
         supplierProduct.setStockAmount(supplierProductDTO.getStockAmount());
         supplierProduct.setSalesAmount(supplierProductDTO.getSalesAmount());
         supplierProduct.setEnabled(supplierProductDTO.getEnabled() != null ? supplierProductDTO.getEnabled() : true);
+        supplierProduct.setSupplierProductCode(supplierProductDTO.getSupplierProductCode());
+        supplierProduct.setFaceValue(supplierProductDTO.getFaceValue());
+        supplierProduct.setDailyStockLimit(supplierProductDTO.getDailyStockLimit());
         
         SupplierProduct updatedSupplierProduct = supplierProductRepository.save(supplierProduct);
         return ResponseEntity.ok(convertToDTO(updatedSupplierProduct));
@@ -106,12 +136,14 @@ public class SupplierProductController {
         dto.setEnabled(supplierProduct.getEnabled());
         dto.setCreatedAt(supplierProduct.getCreatedAt());
         dto.setUpdatedAt(supplierProduct.getUpdatedAt());
+        dto.setSupplierProductCode(supplierProduct.getSupplierProductCode());
+        dto.setFaceValue(supplierProduct.getFaceValue());
+        dto.setDailyStockLimit(supplierProduct.getDailyStockLimit());
         
         // 关联产品信息
         Product product = productRepository.findById(supplierProduct.getProductId()).orElse(null);
         if (product != null) {
             dto.setProductName(product.getName());
-            dto.setProductCode(product.getProductCode());
             dto.setProductType(product.getType());
             dto.setProductFaceValue(product.getFaceValue());
         }

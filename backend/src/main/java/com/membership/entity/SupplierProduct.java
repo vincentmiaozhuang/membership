@@ -36,4 +36,13 @@ public class SupplierProduct extends BaseEntity {
     
     @Column(nullable = false)
     private Boolean enabled = true;
+    
+    @Column(name = "supplier_product_code", nullable = false, unique = true, length = 16)
+    private String supplierProductCode;
+    
+    @Column(name = "face_value")
+    private BigDecimal faceValue;
+    
+    @Column(name = "daily_stock_limit")
+    private Integer dailyStockLimit;
 }

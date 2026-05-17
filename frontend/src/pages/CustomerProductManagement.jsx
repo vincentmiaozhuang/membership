@@ -225,7 +225,25 @@ const CustomerProductManagement = () => {
             label="产品"
             rules={[{ required: true, message: '请选择产品' }]}
           >
-            <Select placeholder="请选择产品">
+            <Select 
+              placeholder="请选择产品"
+              showSearch
+              filterOption={(input, option) => {
+                // 提取option中的所有文本内容
+                const getText = (node) => {
+                  if (typeof node === 'string') {
+                    return node
+                  } else if (Array.isArray(node)) {
+                    return node.map(getText).join('')
+                  } else if (node && typeof node === 'object' && node.props) {
+                    return getText(node.props.children)
+                  }
+                  return ''
+                }
+                const optionText = getText(option.children)
+                return optionText.toLowerCase().includes(input.toLowerCase())
+              }}
+            >
               {products.map((product) => (
                 <Select.Option key={product.id} value={product.id}>
                   {product.name}

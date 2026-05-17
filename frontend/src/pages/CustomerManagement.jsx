@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Table, Button, Modal, Form, Input, InputNumber, Switch, message, Popconfirm, Tabs, Select, DatePicker, Upload, Tag } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, GiftOutlined, DollarOutlined, UploadOutlined, WalletOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, GiftOutlined, DollarOutlined, UploadOutlined, WalletOutlined, OrderedListOutlined } from '@ant-design/icons'
 import request from '../utils/request'
 import dayjs from 'dayjs'
 
@@ -26,6 +26,13 @@ const CustomerManagement = () => {
   const [financialScreenshot, setFinancialScreenshot] = useState('')
   const [form] = Form.useForm()
   const [assignForm] = Form.useForm()
+  const [supplierOrderModalVisible, setSupplierOrderModalVisible] = useState(false)
+  const [currentProduct, setCurrentProduct] = useState(null)
+  const [suppliers, setSuppliers] = useState([])
+  const [supplierOrderEnabled, setSupplierOrderEnabled] = useState(false)
+  const [editCustomerProductModalVisible, setEditCustomerProductModalVisible] = useState(false)
+  const [editingCustomerProduct, setEditingCustomerProduct] = useState(null)
+  const [editCustomerProductForm] = Form.useForm()
 
   const fetchCustomers = async () => {
     setLoading(true)
@@ -79,6 +86,7 @@ const CustomerManagement = () => {
         totalAccountConsumed: data.totalAccountConsumed || 0,
         alertThreshold: data.alertThreshold || 0,
         enabled: data.enabled !== undefined ? data.enabled : true,
+        vipPassEnabled: data.vipPassEnabled !== undefined ? data.vipPassEnabled : false,
       })
     } catch (error) {
       message.error('获取客户余额失败')
@@ -101,11 +109,11 @@ const CustomerManagement = () => {
     setEditingCustomer(record)
     form.setFieldsValue({
       name: record.name,
+      customerCode: record.customerCode,
+      customerSecret: record.customerSecret,
       ipWhitelist: record.ipWhitelist,
       cooperationStartDate: record.cooperationStartDate ? dayjs(record.cooperationStartDate) : null,
-      enabled: record.enabled,
-      createdAt: record.createdAt ? new Date(record.createdAt).toLocaleString() : '-',
-      updatedAt: record.updatedAt ? new Date(record.updatedAt).toLocaleString() : '-'
+      enabled: record.enabled
     })
     setModalVisible(true)
   }
@@ -127,6 +135,17 @@ const CustomerManagement = () => {
         return
       }
       const values = await balanceForm.validateFields()
+      console.log('更新余额:', {
+        paymentAccountTotal: values.paymentAccountTotal,
+        paymentAccountConsumed: values.paymentAccountConsumed,
+        creditAccountTotal: values.creditAccountTotal,
+        creditAccountConsumed: values.creditAccountConsumed,
+        totalAccountAmount: values.totalAccountAmount,
+        totalAccountConsumed: values.totalAccountConsumed,
+        alertThreshold: values.alertThreshold,
+        enabled: values.enabled,
+        vipPassEnabled: values.vipPassEnabled
+      })
       await request.put(`/customer-balances/${customerBalance.id}`, {
         paymentAccountTotal: values.paymentAccountTotal,
         paymentAccountConsumed: values.paymentAccountConsumed,
@@ -136,12 +155,14 @@ const CustomerManagement = () => {
         totalAccountConsumed: values.totalAccountConsumed,
         alertThreshold: values.alertThreshold,
         enabled: values.enabled,
+        vipPassEnabled: values.vipPassEnabled
       })
       message.success('更新余额成功')
       setBalanceModalVisible(false)
       setCustomerBalance(null)
       setSelectedCustomer(null)
     } catch (error) {
+      console.error('更新余额失败:', error)
       message.error('更新余额失败')
     }
   }
@@ -165,9 +186,22 @@ const CustomerManagement = () => {
     }
   }
 
-  const handleAssignProduct = (customer) => {
+  const handleAssignProduct = async (customer) => {
     setSelectedCustomer(customer)
     assignForm.resetFields()
+    try {
+      // 获取当前客户已分配的产品列表
+      const assignedProducts = await request.get(`/customers/${customer.id}/products`)
+      // 获取所有启用的产品
+      const allEnabledProducts = await request.get('/products/enabled')
+      // 过滤掉已分配的产品
+      const filteredProducts = allEnabledProducts.filter(product => {
+        return !assignedProducts.some(assigned => assigned.productId === product.id)
+      })
+      setAvailableProducts(filteredProducts)
+    } catch (error) {
+      message.error('获取产品列表失败')
+    }
     setAssignModalVisible(true)
   }
 
@@ -199,22 +233,64 @@ const CustomerManagement = () => {
     }
   }
 
+  const handleAdjustSupplierOrder = async (record) => {
+    setCurrentProduct(record)
+    try {
+      // 调用后端API获取该产品对应的供应商列表
+      const supplierData = await request.get(`/supplier-products/product/${record.productId}`)
+      
+      // 调用后端API获取现有的供应商顺序
+      let orderData = []
+      let hasOrderRecord = false
+      try {
+        orderData = await request.get(`/customer-product-supplier-orders/customer-product/${record.id}`)
+        hasOrderRecord = orderData.length > 0
+      } catch (error) {
+        // 如果没有现有顺序，忽略错误
+        hasOrderRecord = false
+      }
+      
+      // 设置供应商顺序启用状态
+      setSupplierOrderEnabled(hasOrderRecord)
+      
+      // 创建顺序映射
+      const orderMap = new Map()
+      orderData.forEach(item => {
+        orderMap.set(item.supplierId, item.orderIndex)
+      })
+      
+      // 转换数据格式，添加order字段
+      const supplierList = supplierData.map((item, index) => ({
+        id: item.supplierId,
+        name: item.supplierName,
+        order: orderMap.get(item.supplierId) || (index + 1) // 使用现有顺序或默认值
+      }))
+      
+      // 按顺序从小到大排序
+      supplierList.sort((a, b) => a.order - b.order)
+      
+      setSuppliers(supplierList)
+      setSupplierOrderModalVisible(true)
+    } catch (error) {
+      message.error('获取供应商列表失败')
+    }
+  }
+
+  const handleEditCustomerProduct = (record) => {
+    setEditingCustomerProduct(record)
+    editCustomerProductForm.setFieldsValue({
+      customerPrice: record.customerPrice,
+      stockQuantity: record.stockQuantity
+    })
+    setEditCustomerProductModalVisible(true)
+  }
+
   const customerColumns = [
     {
       title: '客户名称',
       dataIndex: 'name',
       key: 'name',
       width: 120,
-    },
-    {
-      title: '客户代码',
-      dataIndex: 'customerCode',
-      key: 'customerCode',
-    },
-    {
-      title: '客户秘钥',
-      dataIndex: 'customerSecret',
-      key: 'customerSecret',
     },
     {
       title: '客户IP白名单',
@@ -299,12 +375,6 @@ const CustomerManagement = () => {
       width: 120,
     },
     {
-      title: '产品码',
-      dataIndex: 'productCode',
-      key: 'productCode',
-      width: 100,
-    },
-    {
       title: '产品类型',
       dataIndex: 'productType',
       key: 'productType',
@@ -341,30 +411,34 @@ const CustomerManagement = () => {
       width: 80,
     },
     {
-      title: '库存金额',
-      dataIndex: 'stockAmount',
-      key: 'stockAmount',
-      width: 80,
-    },
-    {
-      title: '出货金额',
-      dataIndex: 'shipmentAmount',
-      key: 'shipmentAmount',
-      width: 80,
-    },
-    {
       title: '操作',
       key: 'action',
-      width: 60,
+      width: 200,
       render: (_, record) => (
-        <Popconfirm
-          title="确定移除此产品吗？"
-          onConfirm={() => handleRemoveProduct(selectedCustomer.id, record.id)}
-        >
-          <Button type="link" danger icon={<DeleteOutlined />}>
-            移除
+        <span>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => handleEditCustomerProduct(record)}
+          >
+            修改
           </Button>
-        </Popconfirm>
+          <Button
+            type="link"
+            icon={<OrderedListOutlined />}
+            onClick={() => handleAdjustSupplierOrder(record)}
+          >
+            调整供应商顺序
+          </Button>
+          <Popconfirm
+            title="确定移除此产品吗？"
+            onConfirm={() => handleRemoveProduct(selectedCustomer.id, record.id)}
+          >
+            <Button type="link" danger icon={<DeleteOutlined />}>
+              移除
+            </Button>
+          </Popconfirm>
+        </span>
       ),
     },
   ]
@@ -429,6 +503,18 @@ const CustomerManagement = () => {
             <Input />
           </Form.Item>
           <Form.Item
+            name="customerCode"
+            label="客户代码"
+          >
+            <Input disabled placeholder="客户代码" />
+          </Form.Item>
+          <Form.Item
+            name="customerSecret"
+            label="客户秘钥"
+          >
+            <Input disabled placeholder="客户秘钥" />
+          </Form.Item>
+          <Form.Item
             name="ipWhitelist"
             label="客户IP白名单"
           >
@@ -442,18 +528,6 @@ const CustomerManagement = () => {
           </Form.Item>
           <Form.Item name="enabled" label="状态" valuePropName="checked">
             <Switch checkedChildren="启用" unCheckedChildren="禁用" />
-          </Form.Item>
-          <Form.Item
-            name="createdAt"
-            label="创建时间"
-          >
-            <Input disabled placeholder="创建时间" />
-          </Form.Item>
-          <Form.Item
-            name="updatedAt"
-            label="修改时间"
-          >
-            <Input disabled placeholder="修改时间" />
           </Form.Item>
         </Form>
       </Modal>
@@ -529,7 +603,6 @@ const CustomerManagement = () => {
             await request.post('/customer-payments', {
               customerId: selectedCustomer.id,
               paymentAmount: values.paymentAmount.toString(),
-              creditAmount: values.creditAmount.toString(),
               financialScreenshot: financialScreenshot
             })
             message.success('新增付款成功')
@@ -554,13 +627,6 @@ const CustomerManagement = () => {
             <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="请输入付款金额" />
           </Form.Item>
           <Form.Item
-            name="creditAmount"
-            label="授信金额"
-            rules={[{ required: true, message: '请输入授信金额' }]}
-          >
-            <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="请输入授信金额" />
-          </Form.Item>
-          <Form.Item
             name="financialScreenshot"
             label="财务截图"
           >
@@ -580,7 +646,7 @@ const CustomerManagement = () => {
               </p>
               <p className="ant-upload-text">点击或拖拽文件到此处上传</p>
               <p className="ant-upload-hint">
-                支持上传图片文件，单个文件大小不超过5MB（非必填）
+                支持上传图片文件，单个文件大小不超过 5MB（非必填）
               </p>
             </Upload.Dragger>
           </Form.Item>
@@ -690,6 +756,17 @@ const CustomerManagement = () => {
                 <Select.Option value={false}>已停用</Select.Option>
               </Select>
             </Form.Item>
+            <Form.Item
+              name="vipPassEnabled"
+              label="大客户通行状态"
+              rules={[{ required: true, message: '请选择大客户通行状态' }]}
+              initialValue={false}
+            >
+              <Select placeholder="请选择大客户通行状态">
+                <Select.Option value={true}>打开</Select.Option>
+                <Select.Option value={false}>关闭</Select.Option>
+              </Select>
+            </Form.Item>
             <div style={{ textAlign: 'right', marginTop: 16 }}>
               <Button onClick={() => {
                 setBalanceModalVisible(false)
@@ -721,13 +798,147 @@ const CustomerManagement = () => {
             label="产品"
             rules={[{ required: true, message: '请选择产品' }]}
           >
-            <Select placeholder="请选择产品">
+            <Select 
+              placeholder="请选择产品"
+              showSearch
+              filterOption={(input, option) => {
+                // 提取option中的所有文本内容
+                const getText = (node) => {
+                  if (typeof node === 'string') {
+                    return node
+                  } else if (Array.isArray(node)) {
+                    return node.map(getText).join('')
+                  } else if (node && typeof node === 'object' && node.props) {
+                    return getText(node.props.children)
+                  }
+                  return ''
+                }
+                const optionText = getText(option.children)
+                return optionText.toLowerCase().includes(input.toLowerCase())
+              }}
+            >
               {availableProducts.map((product) => (
                 <Select.Option key={product.id} value={product.id}>
                   {product.name} - {product.type}
                 </Select.Option>
               ))}
             </Select>
+          </Form.Item>
+          <Form.Item
+            name="customerPrice"
+            label="客户价格"
+            rules={[{ required: true, message: '请输入客户价格' }]}
+          >
+            <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="请输入客户价格" />
+          </Form.Item>
+          <Form.Item
+            name="stockQuantity"
+            label="库存量"
+            rules={[{ required: true, message: '请输入库存量' }]}
+          >
+            <InputNumber min={0} style={{ width: '100%' }} placeholder="请输入库存量" />
+          </Form.Item>
+        </Form>
+      </Modal>
+      <Modal
+        title={`调整供应商顺序 - ${currentProduct?.productName}`}
+        open={supplierOrderModalVisible}
+        onOk={async () => {
+          try {
+            if (supplierOrderEnabled) {
+              // 准备保存的数据
+              const orders = suppliers.map(supplier => ({
+                customerProductId: currentProduct.id,
+                supplierId: supplier.id,
+                orderIndex: supplier.order
+              }))
+              
+              // 调用后端API保存供应商顺序
+              await request.post('/customer-product-supplier-orders', orders)
+              message.success('供应商顺序调整成功')
+            } else {
+              // 如果关闭状态，删除所有供应商顺序记录
+              try {
+                await request.delete(`/customer-product-supplier-orders/customer-product/${currentProduct.id}`)
+                message.success('供应商顺序已关闭')
+              } catch (error) {
+                // 如果没有记录，忽略错误
+              }
+            }
+            setSupplierOrderModalVisible(false)
+          } catch (error) {
+            message.error('操作失败')
+          }
+        }}
+        onCancel={() => setSupplierOrderModalVisible(false)}
+      >
+        <div style={{ marginBottom: 24 }}>
+          <span style={{ marginRight: 16 }}>状态：</span>
+          <Switch
+            checked={supplierOrderEnabled}
+            onChange={setSupplierOrderEnabled}
+            checkedChildren="打开"
+            unCheckedChildren="关闭"
+          />
+          <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
+            {supplierOrderEnabled ? '已启用供应商顺序，将按设置的顺序显示供应商' : '未启用供应商顺序，将不显示供应商'}
+          </div>
+        </div>
+        {supplierOrderEnabled && (
+          <div style={{ maxHeight: '400px', overflow: 'auto' }}>
+            {suppliers.map((supplier, index) => (
+              <div key={supplier.id} style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+                <div style={{ width: '30%' }}>{supplier.name}</div>
+                <div style={{ width: '70%' }}>
+                  <InputNumber
+                    min={1}
+                    value={supplier.order}
+                    onChange={(value) => {
+                      const updatedSuppliers = [...suppliers]
+                      updatedSuppliers[index].order = value
+                      setSuppliers(updatedSuppliers)
+                    }}
+                    style={{ width: '100%' }}
+                    placeholder="请输入顺序值"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
+      <Modal
+        title={`修改客户产品 - ${editingCustomerProduct?.productName}`}
+        open={editCustomerProductModalVisible}
+        onOk={async () => {
+          try {
+            const values = await editCustomerProductForm.validateFields()
+            // 计算库存金额
+            const stockAmount = values.customerPrice * values.stockQuantity
+            await request.put(`/customer-products/${editingCustomerProduct.id}`, {
+              customerPrice: values.customerPrice,
+              stockQuantity: values.stockQuantity,
+              shipmentQuantity: editingCustomerProduct.shipmentQuantity || 0,
+              stockAmount: stockAmount,
+              shipmentAmount: editingCustomerProduct.shipmentAmount || 0,
+              enabled: editingCustomerProduct.enabled !== undefined ? editingCustomerProduct.enabled : true
+            })
+            message.success('修改成功')
+            setEditCustomerProductModalVisible(false)
+            // 刷新客户产品列表
+            fetchCustomerProducts(selectedCustomer.id)
+          } catch (error) {
+            console.error('修改失败:', error)
+            message.error('修改失败')
+          }
+        }}
+        onCancel={() => setEditCustomerProductModalVisible(false)}
+      >
+        <Form form={editCustomerProductForm} layout="vertical">
+          <Form.Item
+            label="产品名称"
+          >
+            <Input value={editingCustomerProduct?.productName} disabled style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item
             name="customerPrice"

@@ -4,6 +4,7 @@
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/controller/PermissionController.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/dto/SupplierProductDTO.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/repository/CustomerPaymentRepository.java
+/Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/dto/RechargeStatsDTO.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/dto/RoleDTO.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/security/AuthTokenFilter.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/dto/SupplierRechargeDTO.java
@@ -16,9 +17,13 @@
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/controller/SupplierRechargeController.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/repository/CustomerProductRepository.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/config/JpaConfig.java
+/Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/controller/StatsController.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/controller/CustomerBalanceController.java
+/Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/repository/RechargeStatsRepository.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/security/UserDetailsServiceImpl.java
+/Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/entity/CustomerProductSupplierOrder.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/entity/CustomerProduct.java
+/Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/controller/GenerateController.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/controller/RechargeRecordController.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/repository/SupplierRechargeRepository.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/security/JwtUtils.java
@@ -31,6 +36,7 @@
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/dto/UserDTO.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/repository/PermissionRepository.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/controller/UserController.java
+/Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/scheduler/RechargeStatsScheduler.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/dto/CustomerBalanceDTO.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/controller/AuthController.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/repository/CustomerBalanceRepository.java
@@ -42,6 +48,7 @@
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/entity/CustomerBalance.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/security/UserDetailsImpl.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/repository/UserRepository.java
+/Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/entity/RechargeStats.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/controller/SupplierBalanceController.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/MembershipApplication.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/controller/CustomerProductController.java
@@ -59,7 +66,9 @@
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/entity/BaseEntity.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/entity/Customer.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/repository/SupplierBalanceRepository.java
+/Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/repository/CustomerProductSupplierOrderRepository.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/dto/RechargeRecordDTO.java
+/Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/controller/CustomerProductSupplierOrderController.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/dto/CustomerPaymentDTO.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/repository/CustomerRepository.java
 /Users/vincentmiao/Documents/trae_projects/members/membership-system/backend/src/main/java/com/membership/dto/SupplierBalanceDTO.java

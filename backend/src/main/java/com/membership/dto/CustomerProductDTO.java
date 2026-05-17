@@ -12,7 +12,6 @@ public class CustomerProductDTO {
     private String customerName;
     private Long productId;
     private String productName;
-    private String productCode;
     private String productType;
     private BigDecimal faceValue;
     private String customerProductCode;

@@ -73,11 +73,7 @@ const ProductManagement = () => {
       dataIndex: 'name',
       key: 'name',
     },
-    {
-      title: '产品码',
-      dataIndex: 'productCode',
-      key: 'productCode',
-    },
+
     {
       title: '类型',
       dataIndex: 'type',
@@ -117,14 +113,6 @@ const ProductManagement = () => {
           >
             编辑
           </Button>
-          <Popconfirm
-            title="确定删除此产品吗？"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button type="link" danger icon={<DeleteOutlined />}>
-              删除
-            </Button>
-          </Popconfirm>
         </span>
       ),
     },
@@ -158,20 +146,14 @@ const ProductManagement = () => {
             label="产品名称"
             rules={[{ required: true, message: '请输入产品名称' }]}
           >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            name="productCode"
-            label="产品码"
-          >
-            <Input disabled placeholder="系统自动生成" />
+            <Input disabled={!!editingProduct} />
           </Form.Item>
           <Form.Item
             name="type"
             label="类型"
             rules={[{ required: true, message: '请输入类型' }]}
           >
-            <Input />
+            <Input disabled={!!editingProduct} />
           </Form.Item>
           <Form.Item
             name="faceValue"

@@ -24,7 +24,7 @@ public class ProductController {
     @GetMapping
     @PreAuthorize("hasAuthority('product:read')")
     public ResponseEntity<List<ProductDTO>> getAllProducts() {
-        List<Product> products = productRepository.findAll();
+        List<Product> products = productRepository.findAllByOrderByIdDesc();
         List<ProductDTO> productDTOs = products.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -59,7 +59,6 @@ public class ProductController {
         
         Product product = new Product();
         product.setName(productDTO.getName());
-        product.setProductCode(generateProductCode());
         product.setType(productDTO.getType());
         product.setFaceValue(productDTO.getFaceValue());
         product.setDescription(productDTO.getDescription());
@@ -103,28 +102,22 @@ public class ProductController {
         ProductDTO dto = new ProductDTO();
         dto.setId(product.getId());
         dto.setName(product.getName());
-        dto.setProductCode(product.getProductCode());
         dto.setType(product.getType());
         dto.setFaceValue(product.getFaceValue());
         dto.setDescription(product.getDescription());
         dto.setEnabled(product.getEnabled());
         dto.setCreatedAt(product.getCreatedAt());
+        dto.setUpdatedAt(product.getUpdatedAt());
         return dto;
     }
-    
-    private String generateProductCode() {
+
+    // 生成指定长度的随机字符串
+    private String generateRandomCode(int length) {
         String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        StringBuilder code = new StringBuilder(16);
+        StringBuilder code = new StringBuilder(length);
         Random random = new Random();
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < length; i++) {
             code.append(characters.charAt(random.nextInt(characters.length())));
-        }
-        // 检查是否已存在，避免重复
-        while (productRepository.existsByProductCode(code.toString())) {
-            code.setLength(0);
-            for (int i = 0; i < 16; i++) {
-                code.append(characters.charAt(random.nextInt(characters.length())));
-            }
         }
         return code.toString();
     }

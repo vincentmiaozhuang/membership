@@ -16,6 +16,8 @@ import CustomerBalanceManagement from './pages/CustomerBalanceManagement'
 import RechargeRecordManagement from './pages/RechargeRecordManagement'
 import SupplierProductManagement from './pages/SupplierProductManagement'
 import SupplierBalanceManagement from './pages/SupplierBalanceManagement'
+import StatsManagement from './pages/StatsManagement'
+import DailyStatsManagement from './pages/DailyStatsManagement'
 import PrivateRoute from './components/PrivateRoute'
 
 function App() {
@@ -40,6 +42,8 @@ function App() {
                 <Route path="/customer-payments" component={CustomerPaymentManagement} />
                 <Route path="/customer-balances" component={CustomerBalanceManagement} />
                 <Route path="/recharge-records" component={RechargeRecordManagement} />
+                <Route path="/stats" component={StatsManagement} />
+                <Route path="/daily-stats" component={DailyStatsManagement} />
                 <Redirect to="/" />
               </Switch>
             </CustomLayout>

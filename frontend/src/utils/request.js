@@ -8,7 +8,17 @@ const request = axios.create({
 
 request.interceptors.request.use(
   (config) => {
-    console.log('发起请求:', config.url, config.data)
+    console.log('发起请求:', config.url, config.method === 'get' ? config.params : config.data)
+    // 处理请求参数，确保数字类型正确
+    if (config.params) {
+      Object.keys(config.params).forEach(key => {
+        const value = config.params[key]
+        // 将数字字符串转换为数字
+        if (typeof value === 'string' && !isNaN(Number(value)) && value !== '') {
+          config.params[key] = Number(value)
+        }
+      })
+    }
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`

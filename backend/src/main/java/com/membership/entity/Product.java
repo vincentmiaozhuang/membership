@@ -17,9 +17,6 @@ public class Product extends BaseEntity {
     @Column(nullable = false)
     private String name;
     
-    @Column(nullable = false, unique = true, length = 16)
-    private String productCode;
-    
     @Column(nullable = false)
     private String type;
     

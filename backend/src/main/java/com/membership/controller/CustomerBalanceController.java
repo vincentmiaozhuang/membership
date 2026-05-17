@@ -136,6 +136,9 @@ public class CustomerBalanceController {
         if (customerBalanceDTO.getEnabled() != null) {
             balance.setEnabled(customerBalanceDTO.getEnabled());
         }
+        if (customerBalanceDTO.getVipPassEnabled() != null) {
+            balance.setVipPassEnabled(customerBalanceDTO.getVipPassEnabled());
+        }
         
         CustomerBalance updatedBalance = customerBalanceRepository.save(balance);
         return ResponseEntity.ok(convertToDTO(updatedBalance));
@@ -164,6 +167,7 @@ public class CustomerBalanceController {
         dto.setTotalAccountBalance(balance.getTotalAccountBalance());
         dto.setAlertThreshold(balance.getAlertThreshold());
         dto.setEnabled(balance.getEnabled());
+        dto.setVipPassEnabled(balance.getVipPassEnabled());
         dto.setCreatedAt(balance.getCreatedAt());
         dto.setUpdatedAt(balance.getUpdatedAt());
         return dto;

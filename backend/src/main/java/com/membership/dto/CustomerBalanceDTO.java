@@ -21,6 +21,7 @@ public class CustomerBalanceDTO {
     private BigDecimal totalAccountBalance;
     private BigDecimal alertThreshold;
     private Boolean enabled;
+    private Boolean vipPassEnabled;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

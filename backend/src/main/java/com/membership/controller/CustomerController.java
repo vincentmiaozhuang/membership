@@ -187,7 +187,6 @@ public class CustomerController {
         dto.setCustomerName(customerProduct.getCustomer().getName());
         dto.setProductId(customerProduct.getProduct().getId());
         dto.setProductName(customerProduct.getProduct().getName());
-        dto.setProductCode(customerProduct.getProduct().getProductCode());
         dto.setProductType(customerProduct.getProduct().getType());
         dto.setFaceValue(customerProduct.getProduct().getFaceValue());
         dto.setCustomerProductCode(customerProduct.getCustomerProductCode());

@@ -53,4 +53,7 @@ public class CustomerBalance extends BaseEntity {
     
     @Column(name = "enabled", nullable = false)
     private Boolean enabled = true;
+    
+    @Column(name = "vip_pass_enabled", nullable = false)
+    private Boolean vipPassEnabled = false;
 }

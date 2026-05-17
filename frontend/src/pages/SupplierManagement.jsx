@@ -20,6 +20,11 @@ const SupplierManagement = () => {
   const [products, setProducts] = useState([])
   const [addProductModalVisible, setAddProductModalVisible] = useState(false)
   const [addProductForm] = Form.useForm()
+  const [searchProductName, setSearchProductName] = useState('')
+  const [searchStatus, setSearchStatus] = useState(null)
+  const [editProductModalVisible, setEditProductModalVisible] = useState(false)
+  const [editingProduct, setEditingProduct] = useState(null)
+  const [editProductForm] = Form.useForm()
   
   // 充值相关状态
   const [rechargeModalVisible, setRechargeModalVisible] = useState(false)
@@ -36,7 +41,27 @@ const SupplierManagement = () => {
     setLoading(true)
     try {
       const data = await request.get('/suppliers')
-      setSuppliers(data)
+      // 为每个供应商获取余额信息
+      const suppliersWithBalance = await Promise.all(
+        data.map(async (supplier) => {
+          try {
+            const balance = await request.get(`/supplier-balances/supplier/${supplier.id}`)
+            return {
+              ...supplier,
+              totalRecharge: balance.totalRecharge || 0,
+              remainingAmount: balance.remainingAmount || 0
+            }
+          } catch (error) {
+            // 如果获取余额失败，设置默认值
+            return {
+              ...supplier,
+              totalRecharge: 0,
+              remainingAmount: 0
+            }
+          }
+        })
+      )
+      setSuppliers(suppliersWithBalance)
     } catch (error) {
       message.error('获取供应商列表失败')
     } finally {
@@ -61,7 +86,19 @@ const SupplierManagement = () => {
     try {
       const data = await request.get('/supplier-products')
       // 过滤出当前供应商的产品
-      const filteredProducts = data.filter(item => item.supplierId === supplierId)
+      let filteredProducts = data.filter(item => item.supplierId === supplierId)
+      
+      // 应用搜索条件
+      if (searchProductName) {
+        filteredProducts = filteredProducts.filter(item => 
+          item.productName && item.productName.includes(searchProductName)
+        )
+      }
+      
+      if (searchStatus !== null) {
+        filteredProducts = filteredProducts.filter(item => item.enabled === searchStatus)
+      }
+      
       setSupplierProducts(filteredProducts)
     } catch (error) {
       message.error('获取供应商产品列表失败')
@@ -77,9 +114,11 @@ const SupplierManagement = () => {
     }
   }
 
-  const handleAddProduct = () => {
+  const handleAddProduct = async () => {
     // 先获取所有产品
-    fetchProducts()
+    await fetchProducts()
+    // 先获取供应商已关联的产品列表
+    await fetchSupplierProducts(currentSupplier.id)
     // 重置表单
     addProductForm.resetFields()
     // 打开新增关联产品对话框
@@ -91,9 +130,12 @@ const SupplierManagement = () => {
       const values = await addProductForm.validateFields()
       // 添加供应商ID
       values.supplierId = currentSupplier.id
-      // 计算库存金额和出货金额
-      values.stockAmount = values.supplierPrice * values.stockQuantity
-      values.salesAmount = values.supplierPrice * values.salesQuantity
+      // 设置默认值
+      values.stockQuantity = values.stockQuantity || 0
+      values.salesQuantity = 0
+      // 计算库存金额
+      values.stockAmount = values.stockQuantity * (values.supplierPrice || 0)
+      values.salesAmount = 0
       
       // 发送请求
       await request.post('/supplier-products', values)
@@ -101,6 +143,51 @@ const SupplierManagement = () => {
       
       // 关闭对话框
       setAddProductModalVisible(false)
+      // 重新获取供应商产品列表
+      await fetchSupplierProducts(currentSupplier.id)
+    } catch (error) {
+      console.error('保存失败:', error)
+      message.error('保存失败')
+    }
+  }
+
+  const handleEditProduct = (record) => {
+    // 先获取所有产品，确保下拉列表有数据
+    fetchProducts().then(() => {
+      // 设置编辑对象
+      setEditingProduct(record)
+      // 填充表单
+      editProductForm.setFieldsValue({
+        productId: record.productId,
+        supplierProductCode: record.supplierProductCode,
+        supplierPrice: record.supplierPrice,
+        faceValue: record.faceValue,
+        stockQuantity: record.stockQuantity,
+        dailyStockLimit: record.dailyStockLimit,
+        enabled: record.enabled
+      })
+      // 打开编辑对话框
+      setEditProductModalVisible(true)
+    })
+  }
+
+  const handleEditProductOk = async () => {
+    try {
+      const values = await editProductForm.validateFields()
+      // 添加供应商ID
+      values.supplierId = currentSupplier.id
+      // 添加缺失的字段
+      values.stockQuantity = values.stockQuantity || 0
+      values.salesQuantity = 0
+      // 计算库存金额
+      values.stockAmount = values.stockQuantity * (values.supplierPrice || 0)
+      values.salesAmount = 0
+      // 发送请求
+      await request.put(`/supplier-products/${editingProduct.id}`, values)
+      message.success('修改关联产品成功')
+      
+      // 关闭对话框
+      setEditProductModalVisible(false)
       // 重新获取供应商产品列表
       await fetchSupplierProducts(currentSupplier.id)
     } catch (error) {
@@ -280,6 +367,18 @@ const SupplierManagement = () => {
       key: 'supplierCode',
     },
     {
+      title: '充值总额',
+      dataIndex: 'totalRecharge',
+      key: 'totalRecharge',
+      render: (_, record) => record.totalRecharge || '0',
+    },
+    {
+      title: '供应商余额',
+      dataIndex: 'remainingAmount',
+      key: 'remainingAmount',
+      render: (_, record) => record.remainingAmount || '0',
+    },
+    {
       title: '合作开始时间',
       dataIndex: 'cooperationStartDate',
       key: 'cooperationStartDate',
@@ -292,6 +391,7 @@ const SupplierManagement = () => {
       key: 'enabled',
       render: (enabled) => (enabled ? '启用' : '禁用'),
     },
+    
     {
       title: '操作',
       key: 'action',
@@ -318,21 +418,6 @@ const SupplierManagement = () => {
           >
             充值
           </Button>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            title="确定删除此供应商吗？"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button type="link" danger icon={<DeleteOutlined />}>
-              删除
-            </Button>
-          </Popconfirm>
         </div>
       ),
     },
@@ -399,17 +484,31 @@ const SupplierManagement = () => {
           </Button>
         ]}
       >
+        <div style={{ marginBottom: 16, display: 'flex', gap: 16, alignItems: 'center' }}>
+          <Input
+            placeholder="产品名称"
+            style={{ width: 200 }}
+            onChange={(e) => setSearchProductName(e.target.value)}
+          />
+          <Select
+            placeholder="状态"
+            style={{ width: 120 }}
+            onChange={(value) => setSearchStatus(value)}
+            allowClear
+          >
+            <Option value={true}>启用</Option>
+            <Option value={false}>禁用</Option>
+          </Select>
+          <Button type="primary" onClick={() => fetchSupplierProducts(currentSupplier.id)}>
+            搜索
+          </Button>
+        </div>
         <Table
           columns={[
             {
               title: '产品名称',
               dataIndex: 'productName',
               key: 'productName',
-            },
-            {
-              title: '产品码',
-              dataIndex: 'productCode',
-              key: 'productCode',
             },
             {
               title: '产品类型',
@@ -422,6 +521,11 @@ const SupplierManagement = () => {
               key: 'productFaceValue',
             },
             {
+              title: '供应商产品码',
+              dataIndex: 'supplierProductCode',
+              key: 'supplierProductCode',
+            },
+            {
               title: '供应商价格',
               dataIndex: 'supplierPrice',
               key: 'supplierPrice',
@@ -432,25 +536,28 @@ const SupplierManagement = () => {
               key: 'stockQuantity',
             },
             {
-              title: '出货量',
-              dataIndex: 'salesQuantity',
-              key: 'salesQuantity',
-            },
-            {
               title: '库存金额',
               dataIndex: 'stockAmount',
               key: 'stockAmount',
-            },
-            {
-              title: '出货金额',
-              dataIndex: 'salesAmount',
-              key: 'salesAmount',
             },
             {
               title: '状态',
               dataIndex: 'enabled',
               key: 'enabled',
               render: (enabled) => (enabled ? '启用' : '禁用'),
+            },
+            {
+              title: '操作',
+              key: 'action',
+              render: (_, record) => (
+                <Button
+                  type="link"
+                  icon={<EditOutlined />}
+                  onClick={() => handleEditProduct(record)}
+                >
+                  修改
+                </Button>
+              ),
             },
           ]}
           dataSource={supplierProducts}
@@ -472,13 +579,48 @@ const SupplierManagement = () => {
             label="产品"
             rules={[{ required: true, message: '请选择产品' }]}
           >
-            <Select style={{ width: '100%' }}>
-              {products.map(product => (
+            <Select 
+              style={{ width: '100%' }}
+              showSearch
+              filterOption={(input, option) => {
+                // 提取option中的所有文本内容
+                const getText = (node) => {
+                  if (typeof node === 'string') {
+                    return node
+                  } else if (Array.isArray(node)) {
+                    return node.map(getText).join('')
+                  } else if (node && typeof node === 'object' && node.props) {
+                    return getText(node.props.children)
+                  }
+                  return ''
+                }
+                const optionText = getText(option.children)
+                return optionText.toLowerCase().includes(input.toLowerCase())
+              }}
+            >
+              {products.filter(product => {
+                // 过滤掉已关联的产品
+                const isAssociated = supplierProducts.some(sp => sp.productId === product.id)
+                return !isAssociated
+              }).map(product => (
                 <Option key={product.id} value={product.id}>
-                  {product.name} - {product.productCode}
+                  {product.name}
                 </Option>
               ))}
             </Select>
+          </Form.Item>
+          <Form.Item
+            name="supplierProductCode"
+            label="供应商产品码"
+            rules={[{ required: true, message: '请输入供应商产品码' }]}
+          >
+            <Input style={{ width: '100%' }} placeholder="请输入供应商产品码" />
+          </Form.Item>
+          <Form.Item
+            name="faceValue"
+            label="面值"
+          >
+            <InputNumber style={{ width: '100%' }} min={0} step={0.01} placeholder="请输入面值" />
           </Form.Item>
           <Form.Item
             name="supplierPrice"
@@ -490,14 +632,71 @@ const SupplierManagement = () => {
           <Form.Item
             name="stockQuantity"
             label="库存量"
-            rules={[{ required: true, message: '请输入库存量' }]}
+          >
+            <InputNumber style={{ width: '100%' }} min={0} placeholder="请输入库存量" />
+          </Form.Item>
+          <Form.Item
+            name="dailyStockLimit"
+            label="每日库存限量"
+            rules={[{ required: true, message: '请输入每日库存限量' }]}
           >
             <InputNumber style={{ width: '100%' }} min={0} />
           </Form.Item>
+          <Form.Item name="enabled" label="状态" valuePropName="checked" initialValue={true}>
+            <Switch checkedChildren="启用" unCheckedChildren="禁用" defaultChecked />
+          </Form.Item>
+        </Form>
+      </Modal>
+      
+      {/* 编辑关联产品对话框 */}
+      <Modal
+        title="修改关联产品"
+        open={editProductModalVisible}
+        onOk={handleEditProductOk}
+        onCancel={() => setEditProductModalVisible(false)}
+        width={600}
+      >
+        <Form form={editProductForm} layout="vertical">
           <Form.Item
-            name="salesQuantity"
-            label="出货量"
-            rules={[{ required: true, message: '请输入出货量' }]}
+            name="productId"
+            label="产品"
+          >
+            <Select style={{ width: '100%' }} disabled>
+              {products.map(product => (
+                <Option key={product.id} value={product.id}>
+                  {product.name}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name="supplierProductCode"
+            label="供应商产品码"
+          >
+            <Input style={{ width: '100%' }} disabled />
+          </Form.Item>
+          <Form.Item
+            name="supplierPrice"
+            label="供应商价格"
+            rules={[{ required: true, message: '请输入供应商价格' }]}
+          >
+            <InputNumber style={{ width: '100%' }} min={0} step={0.01} />
+          </Form.Item>
+          <Form.Item
+            name="faceValue"
+            label="面值"
+          >
+            <InputNumber style={{ width: '100%' }} min={0} step={0.01} />
+          </Form.Item>
+          <Form.Item
+            name="stockQuantity"
+            label="库存量"
+          >
+            <InputNumber style={{ width: '100%' }} min={0} placeholder="请输入库存量" />
+          </Form.Item>
+          <Form.Item
+            name="dailyStockLimit"
+            label="每日库存限量"
           >
             <InputNumber style={{ width: '100%' }} min={0} />
           </Form.Item>

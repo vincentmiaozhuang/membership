@@ -18,10 +18,12 @@ public class SupplierProductDTO {
     private Boolean enabled;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String supplierProductCode;
+    private BigDecimal faceValue;
+    private Integer dailyStockLimit;
     
     // 关联信息，用于前端显示
     private String productName;
-    private String productCode;
     private String productType;
     private BigDecimal productFaceValue;
     private String supplierName;

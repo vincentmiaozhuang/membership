@@ -9,10 +9,10 @@ import java.time.LocalDateTime;
 public class ProductDTO {
     private Long id;
     private String name;
-    private String productCode;
     private String type;
     private BigDecimal faceValue;
     private String description;
     private Boolean enabled;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }
