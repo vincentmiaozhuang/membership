@@ -225,7 +225,7 @@ const CustomerPaymentManagement = () => {
               </p>
               <p className="ant-upload-text">点击或拖拽文件到此处上传</p>
               <p className="ant-upload-hint">
-                支持上传图片文件，单个文件大小不超过5MB
+                支持上传图片文件，单个文件大小不超过2MB
               </p>
             </Upload.Dragger>
           </Form.Item>

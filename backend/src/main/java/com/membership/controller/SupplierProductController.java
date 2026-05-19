@@ -7,6 +7,8 @@ import com.membership.entity.SupplierProduct;
 import com.membership.repository.ProductRepository;
 import com.membership.repository.SupplierProductRepository;
 import com.membership.repository.SupplierRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,6 +20,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/supplier-products")
 public class SupplierProductController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(SupplierProductController.class);
     
     @Autowired
     private SupplierProductRepository supplierProductRepository;
@@ -48,23 +52,38 @@ public class SupplierProductController {
     @GetMapping
     @PreAuthorize("hasAuthority('supplier-product:read')")
     public ResponseEntity<?> getSupplierProducts() {
+        logger.info("获取所有供应商产品关联记录");
         List<SupplierProduct> supplierProducts = supplierProductRepository.findAll();
+        logger.debug("共查询到{}条供应商产品关联记录", supplierProducts.size());
+        
         // 为缺失supplierProductCode的记录生成代码
+        int codeGeneratedCount = 0;
         for (SupplierProduct product : supplierProducts) {
             if (product.getSupplierProductCode() == null || product.getSupplierProductCode().isEmpty()) {
                 product.setSupplierProductCode(generateSupplierProductCode());
                 supplierProductRepository.save(product);
+                codeGeneratedCount++;
             }
         }
+        if (codeGeneratedCount > 0) {
+            logger.info("为{}条记录补充了供应商产品代码", codeGeneratedCount);
+        }
+        
         List<SupplierProductDTO> supplierProductDTOs = supplierProducts.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+        logger.info("成功获取供应商产品关联记录，共{}条", supplierProductDTOs.size());
         return ResponseEntity.ok(supplierProductDTOs);
     }
     
     @PostMapping
     @PreAuthorize("hasAuthority('supplier-product:create')")
     public ResponseEntity<?> createSupplierProduct(@RequestBody SupplierProductDTO supplierProductDTO) {
+        logger.info("创建供应商产品关联记录，产品ID: {}, 供应商ID: {}", 
+                supplierProductDTO.getProductId(), supplierProductDTO.getSupplierId());
+        logger.debug("供应商价格: {}, 库存数量: {}, 面值: {}", 
+                supplierProductDTO.getSupplierPrice(), supplierProductDTO.getStockQuantity(), supplierProductDTO.getFaceValue());
+        
         SupplierProduct supplierProduct = new SupplierProduct();
         supplierProduct.setProductId(supplierProductDTO.getProductId());
         supplierProduct.setSupplierId(supplierProductDTO.getSupplierId());
@@ -79,16 +98,24 @@ public class SupplierProductController {
         supplierProduct.setDailyStockLimit(supplierProductDTO.getDailyStockLimit());
         
         SupplierProduct savedSupplierProduct = supplierProductRepository.save(supplierProduct);
+        logger.info("供应商产品关联记录创建成功，ID: {}, 产品ID: {}, 供应商ID: {}", 
+                savedSupplierProduct.getId(), savedSupplierProduct.getProductId(), savedSupplierProduct.getSupplierId());
+        
         return ResponseEntity.ok(convertToDTO(savedSupplierProduct));
     }
     
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('supplier-product:update')")
     public ResponseEntity<?> updateSupplierProduct(@PathVariable Long id, @RequestBody SupplierProductDTO supplierProductDTO) {
+        logger.info("更新供应商产品关联记录，ID: {}", id);
         SupplierProduct supplierProduct = supplierProductRepository.findById(id).orElse(null);
         if (supplierProduct == null) {
+            logger.warn("供应商产品关联记录不存在，ID: {}", id);
             return ResponseEntity.notFound().build();
         }
+        
+        logger.debug("更新前 - 产品ID: {}, 供应商ID: {}, 供应商价格: {}", 
+                supplierProduct.getProductId(), supplierProduct.getSupplierId(), supplierProduct.getSupplierPrice());
         
         supplierProduct.setProductId(supplierProductDTO.getProductId());
         supplierProduct.setSupplierId(supplierProductDTO.getSupplierId());
@@ -103,23 +130,30 @@ public class SupplierProductController {
         supplierProduct.setDailyStockLimit(supplierProductDTO.getDailyStockLimit());
         
         SupplierProduct updatedSupplierProduct = supplierProductRepository.save(supplierProduct);
+        logger.info("供应商产品关联记录更新成功，ID: {}, 产品ID: {}, 供应商ID: {}", 
+                updatedSupplierProduct.getId(), updatedSupplierProduct.getProductId(), updatedSupplierProduct.getSupplierId());
+        
         return ResponseEntity.ok(convertToDTO(updatedSupplierProduct));
     }
     
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('supplier-product:delete')")
     public ResponseEntity<?> deleteSupplierProduct(@PathVariable Long id) {
+        logger.info("删除供应商产品关联记录，ID: {}", id);
         supplierProductRepository.deleteById(id);
+        logger.info("供应商产品关联记录删除成功，ID: {}", id);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/product/{productId}")
     @PreAuthorize("hasAuthority('supplier-product:read')")
     public ResponseEntity<?> getSupplierProductsByProductId(@PathVariable Long productId) {
+        logger.info("获取产品[{}]的供应商关联记录", productId);
         List<SupplierProduct> supplierProducts = supplierProductRepository.findByProductId(productId);
         List<SupplierProductDTO> supplierProductDTOs = supplierProducts.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+        logger.info("成功获取产品[{}]的供应商关联记录，共{}条", productId, supplierProductDTOs.size());
         return ResponseEntity.ok(supplierProductDTOs);
     }
     

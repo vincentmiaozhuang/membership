@@ -1,5 +1,7 @@
 package com.membership.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +20,8 @@ import java.util.Random;
 @RestController
 @RequestMapping("/generate")
 public class GenerateController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(GenerateController.class);
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -35,6 +39,7 @@ public class GenerateController {
     public String generateRechargeRecords(
             @RequestParam(defaultValue = "100") int count,
             @RequestParam(required = false) String date) {
+        logger.info("开始生成充值记录，数量: {}, 日期: {}", count, date);
 
         try {
             // 获取已有的产品、客户、供应商数据
@@ -43,24 +48,27 @@ public class GenerateController {
             List<Supplier> suppliers = getSuppliers();
 
             if (products.isEmpty() || customers.isEmpty() || suppliers.isEmpty()) {
+                logger.warn("产品、客户或供应商表中没有数据");
                 return "Error: No data found in products, customers or suppliers table";
             }
 
-            System.out.printf("Found %d products, %d customers, %d suppliers%n",
+            logger.info("查询到产品: {} 条, 客户: {} 条, 供应商: {} 条", 
                     products.size(), customers.size(), suppliers.size());
 
             // 生成充值记录
             generateRecords(products, customers, suppliers, count, date);
 
+            logger.info("成功生成 {} 条充值记录", count);
             return String.format("Successfully generated %d recharge records", count);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("生成充值记录失败: {}", e.getMessage(), e);
             return "Error generating recharge records: " + e.getMessage();
         }
     }
 
     private List<Product> getProducts() {
+        logger.debug("查询可用产品列表");
         List<Product> products = new ArrayList<>();
         String sql = "SELECT id, name, face_value FROM products WHERE enabled = true";
         jdbcTemplate.query(sql, rs -> {
@@ -70,10 +78,12 @@ public class GenerateController {
             product.facePrice = rs.getBigDecimal("face_value");
             products.add(product);
         });
+        logger.debug("查询到 {} 条产品数据", products.size());
         return products;
     }
 
     private List<Customer> getCustomers() {
+        logger.debug("查询可用客户列表");
         List<Customer> customers = new ArrayList<>();
         String sql = "SELECT id, name FROM customers WHERE enabled = true";
         jdbcTemplate.query(sql, rs -> {
@@ -82,10 +92,12 @@ public class GenerateController {
             customer.name = rs.getString("name");
             customers.add(customer);
         });
+        logger.debug("查询到 {} 条客户数据", customers.size());
         return customers;
     }
 
     private List<Supplier> getSuppliers() {
+        logger.debug("查询可用供应商列表");
         List<Supplier> suppliers = new ArrayList<>();
         String sql = "SELECT id, name FROM suppliers WHERE enabled = true";
         jdbcTemplate.query(sql, rs -> {
@@ -94,6 +106,7 @@ public class GenerateController {
             supplier.name = rs.getString("name");
             suppliers.add(supplier);
         });
+        logger.debug("查询到 {} 条供应商数据", suppliers.size());
         return suppliers;
     }
 
@@ -102,15 +115,18 @@ public class GenerateController {
                                List<Supplier> suppliers, 
                                int count, 
                                String dateStr) throws ParseException {
+        logger.debug("开始生成充值记录数据");
 
         // 计算日期
         Date recordDate;
         if (dateStr != null && !dateStr.isEmpty()) {
             // 使用指定的日期
             recordDate = sdf.parse(dateStr + " 00:00:00");
+            logger.debug("使用指定日期: {}", dateStr);
         } else {
             // 默认使用昨天的日期
             recordDate = new Date(System.currentTimeMillis() - 24 * 60 * 60 * 1000);
+            logger.debug("使用默认日期（昨天）: {}", sdf.format(recordDate));
         }
 
         String sql = "INSERT INTO recharge_records " +
@@ -171,16 +187,17 @@ public class GenerateController {
             };
             batchArgs.add(args);
 
-            // 每10条打印一次
-            if ((i + 1) % 10 == 0) {
-                System.out.printf("Generated %d records%n", i + 1);
+            // 每100条记录一次进度
+            if ((i + 1) % 100 == 0) {
+                logger.info("已生成 {} 条充值记录", i + 1);
             }
         }
         
         // 执行批量更新
+        logger.debug("执行批量插入操作");
         jdbcTemplate.batchUpdate(sql, batchArgs);
 
-        System.out.printf("Successfully generated %d recharge records%n", count);
+        logger.info("批量插入完成，共 {} 条记录", count);
     }
 
     private String generateRandomString(int length) {

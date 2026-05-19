@@ -19,7 +19,7 @@ public class CustomerPayment extends BaseEntity {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal paymentAmount;
     
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(precision = 10, scale = 2)
     private BigDecimal creditAmount;
     
     @Column(length = 500)

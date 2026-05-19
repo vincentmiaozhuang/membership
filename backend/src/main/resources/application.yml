@@ -6,7 +6,7 @@ spring:
     url: jdbc:mysql://localhost:3306/membership_db?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: members
-    password: members
+    password: Huiyuanka123!!!
 
   jpa:
     hibernate:
@@ -16,6 +16,11 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
         format_sql: true
+  
+  servlet:
+    multipart:
+      max-file-size: 2MB    # 单个文件最大大小
+      max-request-size: 50MB # 整个请求最大大小
 
 server:
   port: 8080
@@ -32,3 +37,7 @@ cors:
 logging:
   file:
     name: /Users/vincentmiao/Documents/trae_projects/members/membership-system/log/backend.log
+  level:
+    root: INFO                    # 全局默认级别
+    com.membership: DEBUG         # 项目包下使用 DEBUG 级别
+    com.membership.controller: DEBUG  # 控制器包单独设置

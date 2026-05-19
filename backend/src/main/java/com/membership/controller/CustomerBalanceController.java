@@ -6,6 +6,8 @@ import com.membership.entity.Customer;
 import com.membership.entity.CustomerBalance;
 import com.membership.repository.CustomerBalanceRepository;
 import com.membership.repository.CustomerRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,6 +22,8 @@ import java.util.stream.Collectors;
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class CustomerBalanceController {
     
+    private static final Logger logger = LoggerFactory.getLogger(CustomerBalanceController.class);
+    
     @Autowired
     private CustomerBalanceRepository customerBalanceRepository;
     
@@ -29,28 +33,39 @@ public class CustomerBalanceController {
     @GetMapping
     @PreAuthorize("hasAuthority('customer-balance:read')")
     public ResponseEntity<List<CustomerBalanceDTO>> getAllCustomerBalances() {
+        logger.info("获取所有客户余额记录");
         List<CustomerBalance> balances = customerBalanceRepository.findAll();
         List<CustomerBalanceDTO> balanceDTOs = balances.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+        logger.info("成功获取客户余额记录，共{}条", balanceDTOs.size());
         return ResponseEntity.ok(balanceDTOs);
     }
     
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('customer-balance:read')")
     public ResponseEntity<CustomerBalanceDTO> getCustomerBalanceById(@PathVariable Long id) {
+        logger.info("获取客户余额详情，ID: {}", id);
         CustomerBalance balance = customerBalanceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Customer balance not found"));
+                .orElseThrow(() -> {
+                    logger.error("客户余额记录不存在，ID: {}", id);
+                    return new RuntimeException("Customer balance not found");
+                });
+        logger.info("成功获取客户余额记录，ID: {}, 客户ID: {}", id, balance.getCustomer().getId());
         return ResponseEntity.ok(convertToDTO(balance));
     }
     
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<CustomerBalanceDTO> getCustomerBalanceByCustomerId(@PathVariable Long customerId) {
+        logger.info("获取客户[{}]的余额记录", customerId);
         CustomerBalance balance = customerBalanceRepository.findByCustomerId(customerId)
                 .orElseGet(() -> {
-                    // 如果客户没有余额记录，创建一个默认的余额记录
+                    logger.info("客户[{}]没有余额记录，创建默认余额记录", customerId);
                     Customer customer = customerRepository.findById(customerId)
-                            .orElseThrow(() -> new RuntimeException("Customer not found"));
+                            .orElseThrow(() -> {
+                                logger.error("客户不存在，ID: {}", customerId);
+                                return new RuntimeException("Customer not found");
+                            });
                     CustomerBalance newBalance = new CustomerBalance();
                     newBalance.setCustomer(customer);
                     newBalance.setPaymentAccountTotal(java.math.BigDecimal.ZERO);
@@ -64,18 +79,26 @@ public class CustomerBalanceController {
                     newBalance.setTotalAccountBalance(java.math.BigDecimal.ZERO);
                     newBalance.setAlertThreshold(java.math.BigDecimal.ZERO);
                     newBalance.setEnabled(true);
-                    return customerBalanceRepository.save(newBalance);
+                    CustomerBalance saved = customerBalanceRepository.save(newBalance);
+                    logger.info("客户[{}]默认余额记录创建成功，余额ID: {}", customerId, saved.getId());
+                    return saved;
                 });
+        logger.info("成功获取客户[{}]的余额记录，余额ID: {}", customerId, balance.getId());
         return ResponseEntity.ok(convertToDTO(balance));
     }
     
     @PostMapping
     @PreAuthorize("hasAuthority('customer-balance:create')")
     public ResponseEntity<?> createCustomerBalance(@RequestBody CustomerBalanceDTO customerBalanceDTO) {
+        logger.info("创建客户余额记录，客户ID: {}", customerBalanceDTO.getCustomerId());
         Customer customer = customerRepository.findById(customerBalanceDTO.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+                .orElseThrow(() -> {
+                    logger.error("客户不存在，ID: {}", customerBalanceDTO.getCustomerId());
+                    return new RuntimeException("Customer not found");
+                });
         
         if (customerBalanceRepository.findByCustomerId(customerBalanceDTO.getCustomerId()).isPresent()) {
+            logger.warn("客户[{}]余额记录已存在，创建失败", customerBalanceDTO.getCustomerId());
             return ResponseEntity.badRequest().body(new MessageResponse("该客户余额记录已存在"));
         }
         
@@ -94,42 +117,49 @@ public class CustomerBalanceController {
         balance.setEnabled(customerBalanceDTO.getEnabled() != null ? customerBalanceDTO.getEnabled() : true);
         
         CustomerBalance savedBalance = customerBalanceRepository.save(balance);
+        logger.info("客户余额记录创建成功，ID: {}, 客户ID: {}", savedBalance.getId(), customer.getId());
         return ResponseEntity.ok(convertToDTO(savedBalance));
     }
     
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('customer-balance:update')")
     public ResponseEntity<?> updateCustomerBalance(@PathVariable Long id, @RequestBody CustomerBalanceDTO customerBalanceDTO) {
+        logger.info("更新客户余额记录，ID: {}", id);
         CustomerBalance balance = customerBalanceRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Customer balance not found"));
+                .orElseThrow(() -> {
+                    logger.error("客户余额记录不存在，ID: {}", id);
+                    return new RuntimeException("Customer balance not found");
+                });
         
+        // 更新付款账户总额（如果提供）
         if (customerBalanceDTO.getPaymentAccountTotal() != null) {
+            logger.debug("更新付款账户总额: {} -> {}", balance.getPaymentAccountTotal(), customerBalanceDTO.getPaymentAccountTotal());
             balance.setPaymentAccountTotal(customerBalanceDTO.getPaymentAccountTotal());
         }
+        // 更新付款账户已消费金额（如果提供）
         if (customerBalanceDTO.getPaymentAccountConsumed() != null) {
+            logger.debug("更新付款账户已消费金额: {} -> {}", balance.getPaymentAccountConsumed(), customerBalanceDTO.getPaymentAccountConsumed());
             balance.setPaymentAccountConsumed(customerBalanceDTO.getPaymentAccountConsumed());
         }
-        if (customerBalanceDTO.getPaymentAccountBalance() != null) {
-            balance.setPaymentAccountBalance(customerBalanceDTO.getPaymentAccountBalance());
-        }
+        
+        // 更新授信账户总额（如果提供）
         if (customerBalanceDTO.getCreditAccountTotal() != null) {
+            logger.debug("更新授信账户总额: {} -> {}", balance.getCreditAccountTotal(), customerBalanceDTO.getCreditAccountTotal());
             balance.setCreditAccountTotal(customerBalanceDTO.getCreditAccountTotal());
         }
+        // 更新授信账户已消费金额（如果提供）
         if (customerBalanceDTO.getCreditAccountConsumed() != null) {
+            logger.debug("更新授信账户已消费金额: {} -> {}", balance.getCreditAccountConsumed(), customerBalanceDTO.getCreditAccountConsumed());
             balance.setCreditAccountConsumed(customerBalanceDTO.getCreditAccountConsumed());
         }
-        if (customerBalanceDTO.getCreditAccountBalance() != null) {
-            balance.setCreditAccountBalance(customerBalanceDTO.getCreditAccountBalance());
-        }
-        if (customerBalanceDTO.getTotalAccountAmount() != null) {
-            balance.setTotalAccountAmount(customerBalanceDTO.getTotalAccountAmount());
-        }
-        if (customerBalanceDTO.getTotalAccountConsumed() != null) {
-            balance.setTotalAccountConsumed(customerBalanceDTO.getTotalAccountConsumed());
-        }
-        if (customerBalanceDTO.getTotalAccountBalance() != null) {
-            balance.setTotalAccountBalance(customerBalanceDTO.getTotalAccountBalance());
-        }
+        
+        // 根据公式自动计算各字段
+        calculateBalanceFields(balance);
+        logger.debug("余额字段计算完成: 付款余额={}, 授信余额={}, 总计总额={}, 总计余额={}", 
+                balance.getPaymentAccountBalance(), balance.getCreditAccountBalance(),
+                balance.getTotalAccountAmount(), balance.getTotalAccountBalance());
+        
+        // 更新其他字段
         if (customerBalanceDTO.getAlertThreshold() != null) {
             balance.setAlertThreshold(customerBalanceDTO.getAlertThreshold());
         }
@@ -141,13 +171,52 @@ public class CustomerBalanceController {
         }
         
         CustomerBalance updatedBalance = customerBalanceRepository.save(balance);
+        logger.info("客户余额记录更新成功，ID: {}, 客户ID: {}", updatedBalance.getId(), updatedBalance.getCustomer().getId());
         return ResponseEntity.ok(convertToDTO(updatedBalance));
+    }
+    
+    /**
+     * 根据公式计算余额字段
+     * 1. 付款账户余额 = 付款账户总额 - 付款账户已消费金额
+     * 2. 授信账户余额 = 授信账户总额 - 授信账户已消费金额
+     * 3. 账户总计总额 = 付款账户总额 + 授信账户总额
+     * 4. 账户总计已消费金额 = 付款账户已消费金额 + 授信账户已消费金额
+     * 5. 账户总计余额 = 付款账户余额 + 授信账户余额
+     */
+    private void calculateBalanceFields(CustomerBalance balance) {
+        // 获取各字段值，为空则默认为0
+        BigDecimal paymentTotal = balance.getPaymentAccountTotal() != null ? balance.getPaymentAccountTotal() : BigDecimal.ZERO;
+        BigDecimal paymentConsumed = balance.getPaymentAccountConsumed() != null ? balance.getPaymentAccountConsumed() : BigDecimal.ZERO;
+        BigDecimal creditTotal = balance.getCreditAccountTotal() != null ? balance.getCreditAccountTotal() : BigDecimal.ZERO;
+        BigDecimal creditConsumed = balance.getCreditAccountConsumed() != null ? balance.getCreditAccountConsumed() : BigDecimal.ZERO;
+        
+        // 1. 付款账户余额 = 付款账户总额 - 付款账户已消费金额
+        BigDecimal paymentBalance = paymentTotal.subtract(paymentConsumed);
+        balance.setPaymentAccountBalance(paymentBalance);
+        
+        // 2. 授信账户余额 = 授信账户总额 - 授信账户已消费金额
+        BigDecimal creditBalance = creditTotal.subtract(creditConsumed);
+        balance.setCreditAccountBalance(creditBalance);
+        
+        // 3. 账户总计总额 = 付款账户总额 + 授信账户总额
+        BigDecimal totalAmount = paymentTotal.add(creditTotal);
+        balance.setTotalAccountAmount(totalAmount);
+        
+        // 4. 账户总计已消费金额 = 付款账户已消费金额 + 授信账户已消费金额
+        BigDecimal totalConsumed = paymentConsumed.add(creditConsumed);
+        balance.setTotalAccountConsumed(totalConsumed);
+        
+        // 5. 账户总计余额 = 付款账户余额 + 授信账户余额
+        BigDecimal totalBalance = paymentBalance.add(creditBalance);
+        balance.setTotalAccountBalance(totalBalance);
     }
     
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('customer-balance:delete')")
     public ResponseEntity<?> deleteCustomerBalance(@PathVariable Long id) {
+        logger.info("删除客户余额记录，ID: {}", id);
         customerBalanceRepository.deleteById(id);
+        logger.info("客户余额记录删除成功，ID: {}", id);
         return ResponseEntity.ok(new MessageResponse("Customer balance deleted successfully"));
     }
     

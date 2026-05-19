@@ -799,6 +799,9 @@ const SupplierManagement = () => {
             >
               <Button>点击上传</Button>
             </Upload>
+            <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+              支持上传图片文件，单个文件大小不超过2MB
+            </div>
           </Form.Item>
           <Form.Item name="enabled" label="状态" valuePropName="checked">
             <Switch checkedChildren="启用" unCheckedChildren="禁用" />
@@ -823,9 +826,14 @@ const SupplierManagement = () => {
           <Form.Item
             name="totalRecharge"
             label="账户充值总额"
-            rules={[{ required: true, message: '请输入账户充值总额' }]}
           >
-            <InputNumber style={{ width: '100%' }} min={0} step={0.01} />
+            <InputNumber 
+              style={{ width: '100%' }} 
+              min={0} 
+              step={0.01} 
+              disabled 
+              placeholder="系统自动计算"
+            />
           </Form.Item>
           <Form.Item
             name="consumedAmount"
@@ -837,9 +845,14 @@ const SupplierManagement = () => {
           <Form.Item
             name="remainingAmount"
             label="剩余金额"
-            rules={[{ required: true, message: '请输入剩余金额' }]}
           >
-            <InputNumber style={{ width: '100%' }} min={0} step={0.01} />
+            <InputNumber 
+              style={{ width: '100%' }} 
+              min={0} 
+              step={0.01} 
+              disabled 
+              placeholder="系统自动计算"
+            />
           </Form.Item>
           <Form.Item
             name="alertThreshold"

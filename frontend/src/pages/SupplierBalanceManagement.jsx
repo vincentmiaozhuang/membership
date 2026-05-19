@@ -186,9 +186,14 @@ const SupplierBalanceManagement = () => {
           <Form.Item
             name="totalRecharge"
             label="账户充值总额"
-            rules={[{ required: true, message: '请输入账户充值总额' }]}
           >
-            <InputNumber style={{ width: '100%' }} min={0} step={0.01} />
+            <InputNumber 
+              style={{ width: '100%' }} 
+              min={0} 
+              step={0.01} 
+              disabled 
+              placeholder="系统自动计算"
+            />
           </Form.Item>
           <Form.Item
             name="consumedAmount"
@@ -200,9 +205,14 @@ const SupplierBalanceManagement = () => {
           <Form.Item
             name="remainingAmount"
             label="剩余金额"
-            rules={[{ required: true, message: '请输入剩余金额' }]}
           >
-            <InputNumber style={{ width: '100%' }} min={0} step={0.01} />
+            <InputNumber 
+              style={{ width: '100%' }} 
+              min={0} 
+              step={0.01} 
+              disabled 
+              placeholder="系统自动计算"
+            />
           </Form.Item>
           <Form.Item
             name="alertThreshold"

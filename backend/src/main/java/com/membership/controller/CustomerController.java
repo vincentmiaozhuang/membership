@@ -9,6 +9,8 @@ import com.membership.entity.Product;
 import com.membership.repository.CustomerProductRepository;
 import com.membership.repository.CustomerRepository;
 import com.membership.repository.ProductRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class CustomerController {
     
+    private static final Logger logger = LoggerFactory.getLogger(CustomerController.class);
+    
     @Autowired
     private CustomerRepository customerRepository;
     
@@ -36,18 +40,25 @@ public class CustomerController {
     @GetMapping
     @PreAuthorize("hasAuthority('customer:read')")
     public ResponseEntity<List<CustomerDTO>> getAllCustomers() {
+        logger.info("获取所有客户列表");
         List<Customer> customers = customerRepository.findAll();
         List<CustomerDTO> customerDTOs = customers.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+        logger.info("成功获取客户列表，共{}条", customerDTOs.size());
         return ResponseEntity.ok(customerDTOs);
     }
     
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('customer:read')")
     public ResponseEntity<CustomerDTO> getCustomerById(@PathVariable Long id) {
+        logger.info("获取客户详情，ID: {}", id);
         Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+                .orElseThrow(() -> {
+                    logger.error("客户不存在，ID: {}", id);
+                    return new RuntimeException("Customer not found");
+                });
+        logger.info("成功获取客户，ID: {}, 名称: {}", id, customer.getName());
         return ResponseEntity.ok(convertToDTO(customer));
     }
     
@@ -55,26 +66,31 @@ public class CustomerController {
     //获取可用的客户，注释掉就是为了在充值记录管理中能够有权限获取
     //@PreAuthorize("hasAuthority('customer:read')")
     public ResponseEntity<List<CustomerDTO>> getEnabledCustomers() {
+        logger.info("获取可用客户列表");
         List<Customer> customers = customerRepository.findByEnabledTrue();
         List<CustomerDTO> customerDTOs = customers.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+        logger.info("成功获取可用客户列表，共{}条", customerDTOs.size());
         return ResponseEntity.ok(customerDTOs);
     }
     
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('customer:read')")
     public ResponseEntity<List<CustomerDTO>> searchCustomers(@RequestParam String name) {
+        logger.info("搜索客户，关键词: {}", name);
         List<Customer> customers = customerRepository.findByNameContaining(name);
         List<CustomerDTO> customerDTOs = customers.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+        logger.info("搜索完成，找到{}条匹配的客户", customerDTOs.size());
         return ResponseEntity.ok(customerDTOs);
     }
     
     @PostMapping
     @PreAuthorize("hasAuthority('customer:create')")
     public ResponseEntity<?> createCustomer(@RequestBody CustomerDTO customerDTO) {
+        logger.info("创建客户，名称: {}", customerDTO.getName());
         // 生成16位客户代码
         String customerCode = generateRandomCode(16);
         // 生成16位客户秘钥
@@ -89,14 +105,20 @@ public class CustomerController {
         customer.setEnabled(customerDTO.getEnabled() != null ? customerDTO.getEnabled() : true);
         
         Customer savedCustomer = customerRepository.save(customer);
+        logger.info("客户创建成功，ID: {}, 名称: {}, 客户代码: {}", 
+                savedCustomer.getId(), savedCustomer.getName(), savedCustomer.getCustomerCode());
         return ResponseEntity.ok(convertToDTO(savedCustomer));
     }
     
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('customer:update')")
     public ResponseEntity<?> updateCustomer(@PathVariable Long id, @RequestBody CustomerDTO customerDTO) {
+        logger.info("更新客户，ID: {}", id);
         Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+                .orElseThrow(() -> {
+                    logger.error("客户不存在，ID: {}", id);
+                    return new RuntimeException("Customer not found");
+                });
         
         customer.setName(customerDTO.getName());
         customer.setIpWhitelist(customerDTO.getIpWhitelist());
@@ -104,13 +126,16 @@ public class CustomerController {
         customer.setEnabled(customerDTO.getEnabled() != null ? customerDTO.getEnabled() : true);
         
         Customer updatedCustomer = customerRepository.save(customer);
+        logger.info("客户更新成功，ID: {}, 名称: {}", updatedCustomer.getId(), updatedCustomer.getName());
         return ResponseEntity.ok(convertToDTO(updatedCustomer));
     }
     
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('customer:delete')")
     public ResponseEntity<?> deleteCustomer(@PathVariable Long id) {
+        logger.info("删除客户，ID: {}", id);
         customerRepository.deleteById(id);
+        logger.info("客户删除成功，ID: {}", id);
         return ResponseEntity.ok(new MessageResponse("Customer deleted successfully"));
     }
     

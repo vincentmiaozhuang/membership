@@ -18,6 +18,8 @@ import SupplierProductManagement from './pages/SupplierProductManagement'
 import SupplierBalanceManagement from './pages/SupplierBalanceManagement'
 import StatsManagement from './pages/StatsManagement'
 import DailyStatsManagement from './pages/DailyStatsManagement'
+import MessageManagement from './pages/MessageManagement'
+import MessageDetail from './pages/MessageDetail'
 import PrivateRoute from './components/PrivateRoute'
 
 function App() {
@@ -44,6 +46,8 @@ function App() {
                 <Route path="/recharge-records" component={RechargeRecordManagement} />
                 <Route path="/stats" component={StatsManagement} />
                 <Route path="/daily-stats" component={DailyStatsManagement} />
+                <Route exact path="/messages" component={MessageManagement} />
+                <Route path="/messages/:id" component={MessageDetail} />
                 <Redirect to="/" />
               </Switch>
             </CustomLayout>

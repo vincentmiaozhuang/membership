@@ -1,7 +1,7 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 
 import { useHistory, useLocation } from 'react-router-dom'
-import { Layout, Menu, Button, Dropdown, Avatar } from 'antd'
+import { Layout, Menu, Button, Dropdown, Avatar, Badge } from 'antd'
 import {
   DashboardOutlined,
   UserOutlined,
@@ -16,8 +16,10 @@ import {
   WalletOutlined,
   SettingOutlined,
   BarChartOutlined,
+  MailOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '../contexts/AuthContext'
+import request from '../utils/request'
 
 const { Header, Sider, Content } = Layout
 
@@ -25,6 +27,25 @@ const CustomLayout = ({ children }) => {
   const history = useHistory()
   const location = useLocation()
   const { user, logout, hasPermission } = useAuth()
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    fetchUnreadCount()
+  }, [])
+
+  const fetchUnreadCount = async () => {
+    try {
+      const data = await request.get('/messages/unread-count')
+      setUnreadCount(data)
+    } catch (error) {
+      console.error('获取未读消息数量失败:', error)
+    }
+  }
+
+  const handleMessageClick = () => {
+    history.push('/messages')
+    setUnreadCount(0)
+  }
 
   // 定义所有菜单项及其对应的权限
   const allMenuItems = [
@@ -253,6 +274,23 @@ const CustomLayout = ({ children }) => {
         <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)' }}>
           <div></div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <Button 
+              type="text" 
+              onClick={handleMessageClick}
+              style={{ padding: '4px 12px' }}
+            >
+              <Badge 
+                count={unreadCount > 0 ? unreadCount : 0} 
+                showZero={false}
+                style={{ 
+                  backgroundColor: '#ff4d4f',
+                  top: -2,
+                  right: -8
+                }}
+              >
+                <MailOutlined style={{ fontSize: 20, color: '#666' }} />
+              </Badge>
+            </Button>
             <span>欢迎，{user?.username}</span>
             <Dropdown overlay={userMenu} placement="bottomRight">
               <Button type="text">
