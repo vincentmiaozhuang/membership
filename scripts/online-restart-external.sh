@@ -42,10 +42,8 @@ cd "${PROJECT_DIR}" || exit 1
 echo "  - 拉取远程代码..."
 git fetch origin
 
-echo "  - 强制重置到远程 main 分支..."
-git reset --hard origin/main
-
-# 注意：不执行 git clean，避免删除前端构建产物
+echo "  - 只更新后端模块代码..."
+git checkout origin/main -- membership-core membership-external
 
 echo -e "    ${GREEN}✓ 代码更新完成${NC}"
 echo -e "    ${GREEN}✓ 当前提交: $(git rev-parse --short HEAD)${NC}"
