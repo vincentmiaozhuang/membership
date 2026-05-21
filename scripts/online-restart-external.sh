@@ -45,8 +45,7 @@ git fetch origin
 echo "  - 强制重置到远程 main 分支..."
 git reset --hard origin/main
 
-echo "  - 删除未跟踪文件..."
-git clean -f -d
+# 注意：不执行 git clean，避免删除前端构建产物
 
 echo -e "    ${GREEN}✓ 代码更新完成${NC}"
 echo -e "    ${GREEN}✓ 当前提交: $(git rev-parse --short HEAD)${NC}"
