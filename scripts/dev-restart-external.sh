@@ -3,7 +3,7 @@
 # ==============================================================================
 # 会员卡管理系统 - 外部接口一键重启脚本
 # 功能：停止服务 → 重新编译 → 启动外部接口服务
-# 使用方式：./restart-external.sh
+# 使用方式：./dev-restart-external.sh
 # ==============================================================================
 
 # 颜色定义
@@ -49,7 +49,7 @@ fi
 echo -e "\n${YELLOW}【步骤2】重新编译后端项目...${NC}" | tee -a "$LOG_FILE"
 
 cd "$PROJECT_DIR"
-echo "  - 编译 membership-core 和 membership-external..."
+echo "  - 编译 dev 环境下的 membership-core 和 membership-external..."
 
 if mvn clean package -DskipTests -pl membership-core,membership-external > "$LOG_FILE" 2>&1; then
     echo -e "    ${GREEN}✓ 编译成功${NC}" | tee -a "$LOG_FILE"
